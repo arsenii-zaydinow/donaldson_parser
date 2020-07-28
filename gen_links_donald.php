@@ -3,14 +3,20 @@
 	set_time_limit(500);
 
 	$cookiefile = __DIR__ . "/cookie.txt";
-	$header = ['accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-	'accept-encoding: gzip, deflate, br',
-	'accept-language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-	'cache-control: max-age=0',
-	'upgrade-insecure-requests: 1'];
 	$url = 'https://shop.donaldson.com/store/include/search/autoSuggest.jsp?Dy=1&collection=/content/Shared/Auto-Suggest%20Panels&Ntt=';
+	$headers = [
+		'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+		'accept-encoding: gzip, deflate, br',
+		'accept-language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+		'cache-control: max-age=0',
+		'sec-fetch-dest: document',
+		'sec-fetch-mode: navigate',
+		'sec-fetch-site: none',
+		'sec-fetch-user: ?1',
+		'upgrade-insecure-requests: 1'
+		];
 
-	$dir    = 'rs_parts/';
+	$dir   = 'rs_parts/';
 	$files = array_diff(scandir($dir), array('..', '.'));
 
 	$i = 0;
@@ -24,54 +30,44 @@
 
 	$i = 0;
 
-	for ($r = 3; $r < 4; $r++) {
+	for ($r = 23; $r < 24; $r++) {
+
+		$parts = array();
+		$filename = $dir.$o[$r];
+		$data = file_get_contents($filename);
+		$arts = unserialize($data);
 
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_COOKIEJAR, $cookiefile);
-		//curl_setopt($ch, CURLOPT_COOKIEFILE, $cookiefile);
-		curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36");
-		curl_setopt($ch, CURLOPT_HTTPHEADER, $header );
-		curl_setopt($ch, CURLOPT_URL, 'https://shop.donaldson.com/store/ru-ru/home');
-		$returned = curl_exec($ch);
-		curl_close ($ch);
-
-		$list = $o[$r];
-		$filename = 'rs_parts/'.$o[$r];
-		$data = file_get_contents($filename);
-		$arts = unserialize($data);
-
-		$header = ['accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-		'accept-encoding: gzip, deflate, br',
-		'accept-language: ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-		'cache-control: max-age=0'
-		];
-
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_COOKIEFILE, $cookiefile);
 		curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36");
-		curl_setopt($ch, CURLOPT_HTTPHEADER, $header );
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($ch, CURLINFO_HEADER_OUT, true);
 		//curl_setopt($ch, CURLOPT_HEADER, true);
 
-		for ($f = 254; $f < /*count($arts)*/255; $f++) {
+		curl_setopt($ch, CURLOPT_URL, 'https://shop.donaldson.com/store/ru-ru/home');
+		curl_exec($ch);
 
-			$link = strval($url.trim($arts[$f]));
+		if (curl_getinfo($ch, CURLINFO_HTTP_CODE) == "200") {
+
+		for ($f = 0; $f < count($arts); $f++) {	
+
+			$decodedArt = urlencode(trim($arts[$f]));
+			$link = $url.$decodedArt;
 			curl_setopt($ch, CURLOPT_URL, $link);
+
 			$returned = curl_exec($ch);
-			//$json = phpQuery::newDocument($returned);
-			//echo $returned;
-			$decoded = gzdecode($returned);
+
 			if (curl_getinfo($ch, CURLINFO_HTTP_CODE) == "200") {
 
-				$document = json_decode($decoded);
+				$decoded = gzdecode($returned);
+				$document = json_decode ($decoded);
 
-				/*echo $arts[$f].'<br>';
-				echo var_dump($document).'<br>';
-				foreach ($document as $key => $value) {
+				/*echo $decoded.'<br>';
+
+				foreach ($document->contents[0]->autoSuggest[1] as $key => $value) {
 						echo $key.'<br>';
 				}*/
 
@@ -84,89 +80,44 @@
 						$i++;
 					}
 					else {
-						echo "У детали нет ссылки: ".$arts[$f].' '.curl_getinfo($ch, CURLINFO_HTTP_CODE).'<br>';
+						echo "У детали нет ссылки, уровень records: ".$arts[$f].' '.curl_getinfo($ch, CURLINFO_HTTP_CODE).'<br>';
 					}
 				}
 				else {
-					echo "У детали нет ссылки: ".$arts[$f].' '.curl_getinfo($ch, CURLINFO_HTTP_CODE).'<br>';
+					echo "У детали нет ссылки, уровень pdpUrl: ".$arts[$f].' '.curl_getinfo($ch, CURLINFO_HTTP_CODE).'<br>';
 				}
 				
 			}
 			else {
 			echo "Ошибка при запросе ссылки! <br>";
+			echo $decoded_art.'<br>';
+			echo $link.'<br>';
 			echo "Код ошибки: ".curl_getinfo($ch, CURLINFO_HTTP_CODE).'<br>';
 			echo "Страницы: ".$list.'<br>';
 			echo "Деталь: ".$arts[$f].'<br>';
 			echo "Ключ: ".$f.'<br>';
-			echo curl_getinfo($ch, CURLINFO_HEADER_OUT);
+			echo curl_getinfo($ch, CURLINFO_HEADER_OUT).'<br>';
 			echo $returned;
 			break;
 			}
 				//break;
 				//time_nanosleep (1, 0);
 			}
+		}
+		else {
+			echo "Произошла ошибка при получние Cookie с главной страницы!";
+		}
 		curl_close ($ch);
 
-		$files = 'donald_ids/'.$list;
-		$info = serialize($parts);
-		file_put_contents($files, $info);
-		$i = 0;
-
-		break;
+		if (isset($parts)) {
+			$files = 'donald_ids/'.$o[$r];
+			$info = serialize($parts);
+			file_put_contents($files, $info);
 		}
 		
+		$i = 0;
 
-	
-
-	/*foreach ($parts as $key => $value) {
-		echo $key.'. '.$parts[$key]['art'].' | '.$parts[$key]['id'].'<br>';
-	}*/
-
-
-
-	/*foreach ($document as $key => $value) {
-		echo $key.'<br>';
-	}*/
-
-	//$arr = $document['contentCollection'];
-	//echo var_dump($document);
-	//$document->contents;
-
-	/*foreach ($document->contents[0]->autoSuggest[1] as $key => $value) {
-		echo $key.'<br>';
-	}*/
-	//echo var_dump($document->contents[0]->autoSuggest[1]).'<br>';
-
-	/*if (array_key_exists('records', $document->contents[0]->autoSuggest[1])) {
-		echo "Ссылка есть";
-	}
-	else {
-		echo "сылки нет";
-	}*/
-
-	/*$link = $document->contents[0]->autoSuggest[1]->records[0]->attributes->pdpUrl[0].'<br>';
-	echo $link.'<br>';
-	$copms = pathinfo($link);
-	echo $copms['filename'];
-	foreach ($copms as $key => $value) {
-		echo $key;
-	}*/
-
-	//echo get_class_methods($document->contents[0]->autoSuggest[1]);
-
-	/*foreach (get_object_vars($document->contents[0]->autoSuggest[1]->records[0]) as $key => $value) {
-		echo $key."<br>";
-	}*/
-
-	//echo gettype($document->contents[0]);
-
-	/*for($i = 0; $i < count($arr); $i++){
-		foreach ($arr[$i] as $key => $value) {
-			echo $key." | ";
-			//break;
+		//break;
 		}
-		echo "<br>";
-		break;
-	}*/
 
 ?>
