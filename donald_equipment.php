@@ -1,4 +1,18 @@
 <?php
+	$servername = "localhost";
+	$database = "equipment";
+	$username = "root";
+	$password = "";
+
+	$conn = mysqli_connect($servername, $username, $password, $database);
+
+	if (!$conn) {
+      die("Connection failed: " . mysqli_connect_error());
+	}
+ 
+	echo "Connected successfully!"."<br>";
+
+
 	$dir   = 'donald_ids/';
 	$files = array_diff(scandir($dir), array('..', '.'));
 
@@ -20,7 +34,6 @@
 		
 	for ($r = 0; $r < 1; $r++) {
 		
-		$eqp = array();
 		$filename = $dir.$details[$r];
 		$data = file_get_contents($filename);
 		$data = preg_replace_callback('!s:\d+:"(.*?)";!s', function($m) { return "s:" . strlen($m[1]) . ':"'.$m[1].'";'; }, $data);
@@ -44,24 +57,43 @@
 			'service_token: 3TuSgTm3MyS9ZL0adPDjYg=='
 			];
 			
-			for ($f = 40; $f < 41; $f++) {
-				$decodedArt = urlencode(trim($parts[$f]["id"]));
-				$link = $url.$decodedArt;
+			for ($f = 51; $f < 52; $f++) {
+
+				$tableEqp = array();
+
+				$decodedId = urlencode(trim($parts[$f]["id"]));
+				$link = $url.$decodedId;
+
 				curl_setopt($ch, CURLOPT_HTTPHEADER, $headers );
 				curl_setopt($ch, CURLOPT_URL, $link);
 				$html = curl_exec($ch);
 				
 				if (curl_getinfo($ch, CURLINFO_HTTP_CODE) == "200") {
 					$json = json_decode($html, TRUE);
-					$eqp = $json['equipmentList'];
+					$parseEqp = $json['equipmentList'];
 
-					if (count($eqp) > 0) {
-						for($h = 0; $h < count($eqp); $h++){
-							foreach ($eqp[$h] as $key => $value) {
-								echo $key.'. '.$value.'<br>';
-								//break;
-							}	
-							echo "<br>";
+					if (count($parseEqp) > 0) {
+						for($h = 0; $h < count($parseEqp); $h++){
+
+							$tableEqp[$h]["art"] = $parts[$f]["art"];
+							$tableEqp[$h]["producer"] = $parseEqp[$h]['equipmentMakeDisplayName']."<br>";
+							$tableEqp[$h]["eqpModel"] = $parseEqp[$h]['equipmentModel']."<br>";
+							$tableEqp[$h]["eqpType"] = $parseEqp[$h]['equipmentTypeDisplayName']."<br>";
+
+							if ($parseEqp[$h]['engineMakeDisplayName'] == '-') {
+								$tableEqp[$h]["engineModel"] = $parseEqp[$h]['equipmentEngineModel']."<br>";
+							}
+							else {
+								$tableEqp[$h]["engineModel"] = $parseEqp[$h]['engineMakeDisplayName'].' '.$parseEqp[$h]['equipmentEngineModel']."<br>";
+							}
+							
+							/*$sql = "INSERT INTO equipment (art, producer, eqpModel, eqpType, engineModel) VALUES ('$tableEqp[$h]['art']', '$tableEqp[$h]['producer']', '$tableEqp[$h]['eqpModel']', '$tableEqp[$h]['eqpType']', '$tableEqp[$h]['eqpType']')";
+							if (mysqli_query($conn, $sql)) {
+      							echo "New record created successfully";
+							} else {
+     							echo "Error: " . $sql . "<br>" . mysqli_error($conn);
+							}
+							break;*/
 						}
 					}
 				}
@@ -75,7 +107,14 @@
 			echo 'Не удалось получить cookie со страницы '.$donaldLink;
 			break;
 		}
-		curl_close ($ch);
+		
 	}
+
+	curl_close ($ch);
+	mysqli_close($conn);
+
+	/*foreach ($tableEqp as $key => $value) {
+		echo $key." | ".$tableEqp[$key]["art"]." | ".$tableEqp[$key]["producer"]." | ".$tableEqp[$key]["eqpModel"]." | ".$tableEqp[$key]["eqpType"]." | ".$tableEqp[$key]["engineModel"]."<br>";
+	}*/
 	
 ?>
