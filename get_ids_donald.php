@@ -1,4 +1,5 @@
 <?php
+	//Получение id найденных запчастей для парсинга оборудования на сайте shop.donaldson.com
 	require ('../phpQuery.php');
 	set_time_limit(500);
 
