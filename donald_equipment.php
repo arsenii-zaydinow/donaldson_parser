@@ -1,4 +1,5 @@
 <?php
+	//Парсинг оборудования по полученным id на сайте shop.donaldson.com и занесение его в базу данных
 	$servername = "localhost";
 	$database = "equipment";
 	$username = "root";
