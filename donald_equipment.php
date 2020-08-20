@@ -57,7 +57,7 @@
 			'service_token: 3TuSgTm3MyS9ZL0adPDjYg=='
 			];
 
-			for ($f = 0; $f < count($parts); $f++) {
+			for ($f = 0; $f < /*count($parts);*/ 100;$f++) {
 
 				$tableEqp = array();
 
@@ -67,6 +67,9 @@
 				curl_setopt($ch, CURLOPT_HTTPHEADER, $headers );
 				curl_setopt($ch, CURLOPT_URL, $link);
 				$html = curl_exec($ch);
+
+				// echo $html;
+				// break;
 			
 				if (curl_getinfo($ch, CURLINFO_HTTP_CODE) == "200") {
 					$json = json_decode($html, TRUE);
@@ -76,18 +79,19 @@
 						for($h = 0; $h < count($parseEqp); $h++){
 
 							if ($parseEqp[$h]['engineMakeDisplayName'] == '-') {
-								$engineModel = $parseEqp[$h]['equipmentEngineModel'];
+								$engineModel = $parseEqp[$h]['equipmentMakeDisplayName'].' '.$parseEqp[$h]['equipmentEngineModel'];
 							}
 							else {
-								$engineModel = $parseEqp[$h]['engineMakeDisplayName'].' '.$parseEqp[$h]['equipmentEngineModel'];
+								$engineModel = $parseEqp[$h]['equipmentEngineModelSortableValue'];
 							}
 
 							$sql = "INSERT INTO equipment (art, producer, eqpModel, eqpType, engineModel) VALUES ('".trim($parts[$f]['art'])."', '".$parseEqp[$h]['equipmentMakeDisplayName']."', '".$parseEqp[$h]['equipmentModel']."', '".$parseEqp[$h]['equipmentTypeDisplayName']."', '$engineModel')";
 
 							if (mysqli_query($conn, $sql)) {
-      							echo "New record created successfully <br>";
+      							//echo "New record created successfully <br>";
 							} else {
      							echo "Error: " . $sql . "<br>" . mysqli_error($conn);
+     							break;
 							}
 
 						}
@@ -97,14 +101,14 @@
 					echo 'Не удалось запросить оборудование со страницы '.$link;
 					break 2;
 				}
-
+				//break;
 			}
 		}
 		else {
 			echo 'Не удалось получить cookie со страницы '.$donaldLink;
 			break;
 		}
-
+		break;
 	}
 
 	curl_close ($ch);
