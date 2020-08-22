@@ -1,5 +1,7 @@
 <?php
 	//Парсинг оборудования по полученным id на сайте shop.donaldson.com и занесение его в базу данных
+	set_time_limit(1000);
+
 	$servername = "localhost";
 	$database = "equipment";
 	$username = "root";
@@ -33,7 +35,7 @@
 	$donaldLink = 'https://shop.donaldson.com/store/ru-ru/home';
 	$url = 'https://shop.donaldson.com/store/rest/fetchproductequipmentlist?id=';
 		
-	for ($r = 0; $r < count($details); $r++) {
+	for ($r = 0; $r < /*count($details)*/1; $r++) {
 		
 		$filename = $dir.$details[$r];
 		$data = file_get_contents($filename);
@@ -57,7 +59,7 @@
 			'service_token: 3TuSgTm3MyS9ZL0adPDjYg=='
 			];
 
-			for ($f = 0; $f < /*count($parts);*/ 100;$f++) {
+			for ($f = 0; $f < count($parts);$f++) {
 
 				$tableEqp = array();
 
@@ -68,14 +70,16 @@
 				curl_setopt($ch, CURLOPT_URL, $link);
 				$html = curl_exec($ch);
 
-				// echo $html;
-				// break;
+				/*echo $parts[$f]["id"];
+				echo $html;
+				break;*/
 			
 				if (curl_getinfo($ch, CURLINFO_HTTP_CODE) == "200") {
 					$json = json_decode($html, TRUE);
 					$parseEqp = $json['equipmentList'];
 
 					if (count($parseEqp) > 0) {
+
 						for($h = 0; $h < count($parseEqp); $h++){
 
 							if ($parseEqp[$h]['engineMakeDisplayName'] == '-') {
@@ -83,6 +87,10 @@
 							}
 							else {
 								$engineModel = $parseEqp[$h]['equipmentEngineModelSortableValue'];
+							}
+
+							if ($parseEqp[$h]['equipmentEngineOptions'] != '-') {
+								$engineModel = $engineModel.' '.$parseEqp[$h]['equipmentEngineOptions'];
 							}
 
 							$sql = "INSERT INTO equipment (art, producer, eqpModel, eqpType, engineModel) VALUES ('".trim($parts[$f]['art'])."', '".$parseEqp[$h]['equipmentMakeDisplayName']."', '".$parseEqp[$h]['equipmentModel']."', '".$parseEqp[$h]['equipmentTypeDisplayName']."', '$engineModel')";
@@ -108,7 +116,7 @@
 			echo 'Не удалось получить cookie со страницы '.$donaldLink;
 			break;
 		}
-		break;
+		//break;
 	}
 
 	curl_close ($ch);
