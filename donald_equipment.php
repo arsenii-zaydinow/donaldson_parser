@@ -10,11 +10,11 @@
 	$conn = mysqli_connect($servername, $username, $password, $database);
 
 	if (!$conn) {
-      die("Connection failed: " . mysqli_connect_error());
+    	die("Connection failed: " . mysqli_connect_error());
 	}
- 
-	echo "Connected successfully!"."<br>";
-
+	else {
+		echo "Connected successfully!"."<br>";
+	}
 
 	$dir   = 'donald_ids/';
 	$files = array_diff(scandir($dir), array('..', '.'));
@@ -35,7 +35,7 @@
 	$donaldLink = 'https://shop.donaldson.com/store/ru-ru/home';
 	$url = 'https://shop.donaldson.com/store/rest/fetchproductequipmentlist?id=';
 		
-	for ($r = 0; $r < /*count($details)*/1; $r++) {
+	for ($r = 4; $r < /*count($details)*/5; $r++) {
 		
 		$filename = $dir.$details[$r];
 		$data = file_get_contents($filename);
@@ -82,6 +82,8 @@
 
 						for($h = 0; $h < count($parseEqp); $h++){
 
+							
+							//Проверка на наличие производителя двигателя
 							if ($parseEqp[$h]['engineMakeDisplayName'] == '-') {
 								$engineModel = $parseEqp[$h]['equipmentMakeDisplayName'].' '.$parseEqp[$h]['equipmentEngineModel'];
 							}
@@ -89,20 +91,52 @@
 								$engineModel = $parseEqp[$h]['equipmentEngineModelSortableValue'];
 							}
 
+							//Проверка на наличие доп. опций двигателя
 							if ($parseEqp[$h]['equipmentEngineOptions'] != '-') {
-								$engineModel = $engineModel.' '.$parseEqp[$h]['equipmentEngineOptions'];
+								$engineModel = $engineModel.' ('.$parseEqp[$h]['equipmentEngineOptions'].')';
 							}
 
-							$sql = "INSERT INTO equipment (art, producer, eqpModel, eqpType, engineModel) VALUES ('".trim($parts[$f]['art'])."', '".$parseEqp[$h]['equipmentMakeDisplayName']."', '".$parseEqp[$h]['equipmentModel']."', '".$parseEqp[$h]['equipmentTypeDisplayName']."', '$engineModel')";
+							//Заносим данные во временную таблицу
+							$temp = "INSERT INTO temp (art, producer, eqpModel, eqpType, engineModel) VALUES ('".trim($parts[$f]['art'])."', '".$parseEqp[$h]['equipmentMakeDisplayName']."', '".$parseEqp[$h]['equipmentModel']."', '".$parseEqp[$h]['equipmentTypeDisplayName']."', '$engineModel')";
 
-							if (mysqli_query($conn, $sql)) {
-      							//echo "New record created successfully <br>";
+							if (mysqli_query($conn, $temp)) {
+      						//echo "New record created successfully <br>";
 							} else {
-     							echo "Error: " . $sql . "<br>" . mysqli_error($conn);
-     							break;
+     						echo "Error: " . $temp . "<br>" . mysqli_error($conn);
+     						break;
 							}
 
 						}
+
+						//Удаляем повторения из временной таблицы
+						$delete = "DELETE t1.* FROM temp AS t1 LEFT JOIN (SELECT id FROM temp GROUP BY art, producer, eqpModel, eqpType, engineModel) AS t2 ON t1.id = t2.id WHERE t2.id IS NULL";
+
+						if (mysqli_query($conn, $delete)) {
+      						//echo "New record created successfully <br>";
+						} else {
+     						echo "Error: " . $delete . "<br>" . mysqli_error($conn);
+     						break;
+						}
+
+						//Заносим уникальные значения в основную таблицу
+						/*$sql = "INSERT INTO equipment (art, producer, eqpModel, eqpType, engineModel) SELECT art, producer, eqpModel, eqpType, engineModel FROM temp";
+
+						if (mysqli_query($conn, $sql)) {
+      						//echo "New record created successfully <br>";
+						} else {
+     						echo "Error: " . $sql . "<br>" . mysqli_error($conn);
+     						break;
+						}*/
+
+						//Очищаем временную таблицу
+						/*$truncate = "TRUNCATE TABLE temp";
+
+						if (mysqli_query($conn, $truncate)) {
+      						//echo "New record created successfully <br>";
+						} else {
+     						echo "Error: " . $truncate . "<br>" . mysqli_error($conn);
+     						break;
+						}*/
 					}
 				}
 				else {
