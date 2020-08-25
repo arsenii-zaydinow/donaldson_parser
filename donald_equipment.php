@@ -97,13 +97,13 @@
 							}
 
 							//Заносим данные во временную таблицу
-							$temp = "INSERT INTO temp (art, producer, eqpModel, eqpType, engineModel) VALUES ('".trim($parts[$f]['art'])."', '".$parseEqp[$h]['equipmentMakeDisplayName']."', '".$parseEqp[$h]['equipmentModel']."', '".$parseEqp[$h]['equipmentTypeDisplayName']."', '$engineModel')";
+							$temp = "INSERT INTO temp (art, producer, eqpModel, eqpType, engineModel) VALUES ('".mysqli_real_escape_string($conn, trim($parts[$f]['art']))."', '".mysqli_real_escape_string($conn, $parseEqp[$h]['equipmentMakeDisplayName'])."', '".mysqli_real_escape_string($conn, $parseEqp[$h]['equipmentModel'])."', '".mysqli_real_escape_string($conn, $parseEqp[$h]['equipmentTypeDisplayName'])."', '".mysqli_real_escape_string($conn, $engineModel)."')";
 
 							if (mysqli_query($conn, $temp)) {
       						//echo "New record created successfully <br>";
 							} else {
      						echo "Error: " . $temp . "<br>" . mysqli_error($conn);
-     						break;
+     						break 2;
 							}
 
 						}
