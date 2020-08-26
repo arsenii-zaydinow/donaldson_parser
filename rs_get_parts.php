@@ -2,7 +2,7 @@
 	//Получние артикулов запчастей с сайта, для которого нужно получить оборудование
 	function get_parts () {
 
-		require ('../phpQuery.php');
+		require_once('libs/phpQuery.php');
 		set_time_limit(500);
 
 		$cookiefile = __DIR__ . "/cookie.txt";
